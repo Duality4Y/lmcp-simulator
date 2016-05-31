@@ -1,0 +1,96 @@
+from glob import glob
+import os
+import fnmatch
+
+prefix = ''
+cc = prefix + 'gcc'
+cxx = prefix + 'g++'
+ar = prefix + 'ar'
+ranlib = prefix + 'ranlib'
+
+project_name = 'ledmatrix'
+build_dir = 'build/'
+
+src_dir = 'src/'
+include_dir = 'include/'
+src_ext = '.cpp'
+
+static_lib_dir = 'lib/'
+lib_dir = 'libraries/'
+
+""" system installed libs that are needed."""
+# rgbmatrix uses pthread, rt, m
+system_libs = ['SDL2']
+
+"""
+    local libs are libraries inside of the project libraries folder.
+    asuming the library folder has the same name as the library
+    (lib + foldername).
+"""
+local_libs = ['ledart', 'lmcp']
+
+"""
+    compile time flags. don't add libraries here.
+    but in system_libs or local_libs
+"""
+ccflags = ['-Wall']
+# for debugging symbols.
+ccflags.append('-ggdb3')
+ccflags.append('-O0')
+ccflags.append('-ansi')
+ccflags.append('-pedantic-errors')
+ccflags.append('-Wextra')
+ccflags.append('-Werror')
+ccflags.append('--std=c++11')
+
+
+""" setup build environment """
+env = Environment()
+
+env['CXX'] = cxx
+env['CC'] = cc
+env['AR'] = ar
+env['RANLIB'] = ranlib
+env['CCFLAGS'] = ccflags
+env['ENV']['PATH'] = os.environ['PATH']
+env.Append(CPPPATH=[include_dir])
+
+""" finds lib includes and the library and ands the lib to be found. """
+if len(local_libs):
+    for lib in local_libs:
+        env.Append(CPPPATH=[lib_dir + lib + '/' + 'include/'])
+        env.Append(LIBPATH=[lib_dir + lib + '/' + 'lib/'])
+        env.Append(LIBS=[lib])
+
+""" does the same but then for system wide installed libraries. """
+if len(system_libs):
+    # run for system installed libs
+    for lib in system_libs:
+        env.Append(LIBS=[lib])
+    print("libs: %s" % env['LIBS'])
+
+""" makes a list of all the sources and turns them into a list of objects. """
+obj_targets = []
+src_files = []
+for root, dirnames, filenames in os.walk(src_dir):
+    for filename in fnmatch.filter(filenames, '*.cpp'):
+        src_files.append(os.path.join(root, filename))
+
+for src in src_files:
+    target = src.replace('.cpp', '.o').replace(src_dir, 'objects/')
+    obj_targets.append(build_dir + target)
+
+objects = []
+for (obj_target, src_file) in zip(obj_targets, src_files):
+    objects.append(env.Object(target=obj_target, source=src_file))
+
+""" compile and link everything. """
+env.Program(target=build_dir + project_name, source=objects)
+
+""" also remove build directory when cleaning. """
+Clean('.', build_dir)
+
+if 'CPPPATH' in env:
+    print("cpppath: %s" % env['CPPPATH'])
+if 'LIBPATH' in env:
+    print("libpath: %s" % env['LIBPATH'])
