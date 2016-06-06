@@ -27,6 +27,7 @@ public:
     void clear();
     void writeScreen();
     void setPixel(uint8_t, uint8_t, uint8_t);
+    void setPixelRgb(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t);
     void run();
 
     Graphics *surface;
@@ -45,7 +46,11 @@ Lmcp(width, height, bitdepth)
 }
 
 Simulator::~Simulator()
-{}
+{
+    static RGBColor_t alloff = BLACK;
+    this->surface->fill(alloff);
+    this->sim->process(this->surface);
+}
 
 void Simulator::clear()
 {
@@ -62,6 +67,15 @@ void Simulator::setPixel(uint8_t color_val, uint8_t x, uint8_t y)
 {
     static RGBColor_t color = BLACK;
     color.red = color_val;
+    this->surface->draw_pixel(x, y, color);
+}
+
+void Simulator::setPixelRgb(uint8_t r, uint8_t g, uint8_t b, uint8_t x, uint8_t y)
+{
+    static RGBColor_t color = BLACK;
+    color.red = r;
+    color.green = g;
+    color.blue = b;
     this->surface->draw_pixel(x, y, color);
 }
 
